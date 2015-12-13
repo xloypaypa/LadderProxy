@@ -1,0 +1,16 @@
+group 'xlo'
+version '1.0'
+
+apply plugin: 'java'
+apply plugin: 'idea'
+
+repositories {
+    jcenter()
+    mavenLocal()
+}
+
+dependencies {
+    compile "ladder:ladder:1.5.0"
+    testCompile "junit:junit:4.11"
+    testCompile "org.mockito:mockito-core:1.+"
+}
