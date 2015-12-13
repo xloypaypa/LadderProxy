@@ -17,20 +17,6 @@ public class BrowserConnectionSolver extends AbstractSolver {
         super(connectionMessage);
     }
 
-    protected ConnectionStatus getIOStatus() {
-        updateWriteBuffer();
-        if (writerBuffer == null && writeList.size() == 0) {
-            return ConnectionStatus.READING;
-        }
-
-        if (writerBuffer == null) {
-            System.out.println(new String(writeList.poll()));
-            writerBuffer = ByteBuffer.wrap(writeList.poll());
-        }
-
-        return ConnectionStatus.WRITING;
-    }
-
     @Override
     protected AbstractSolver getOther() {
         return this.proxyServerConnectionSolver;

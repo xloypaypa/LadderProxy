@@ -1,6 +1,7 @@
 package net;
 
 import net.server.AbstractServer;
+import net.tool.connectionManager.ConnectionManager;
 import net.tool.connectionSolver.ConnectionMessage;
 import net.tool.connectionSolver.ConnectionStatus;
 
@@ -41,10 +42,8 @@ public abstract class AbstractSolver extends AbstractServer {
             readBuffer.compact();
             this.getOther().addBytes(now);
 
-            return ConnectionStatus.WAITING;
+            return afterIO();
         } catch (IOException e) {
-            System.out.println(this.getClass());
-            e.printStackTrace();
             return ConnectionStatus.ERROR;
         }
     }
@@ -52,19 +51,13 @@ public abstract class AbstractSolver extends AbstractServer {
     @Override
     public ConnectionStatus whenWriting() {
         try {
-            this.getConnectionMessage().getSocket().write(writerBuffer);
+            if (this.getConnectionMessage().getSocket().write(writerBuffer) < 0) {
+                return ConnectionStatus.CLOSE;
+            }
             return afterIO();
         } catch (IOException e) {
-            System.out.println(this.getClass());
-            e.printStackTrace();
             return ConnectionStatus.ERROR;
         }
-    }
-
-    @Override
-    public ConnectionStatus whenClosing() {
-        this.getConnectionMessage().closeSocket();
-        return null;
     }
 
     @Override
@@ -72,16 +65,32 @@ public abstract class AbstractSolver extends AbstractServer {
         return ConnectionStatus.CLOSE;
     }
 
-    @Override
-    public ConnectionStatus whenWaiting() {
-        return getIOStatus();
-    }
-
     public void addBytes(byte[] bytes) {
         writeList.add(bytes);
         if (this.getConnectionMessage().getSelectionKey() != null) {
             toWriting();
+            this.getConnectionMessage().getSelectionKey().selector().wakeup();
         }
+    }
+
+    protected void toReading() {
+        this.getConnectionMessage().getSelectionKey().interestOps(SelectionKey.OP_READ);
+    }
+
+    protected void toWriting() {
+        this.getConnectionMessage().getSelectionKey().interestOps(SelectionKey.OP_WRITE);
+    }
+
+    @Override
+    public ConnectionStatus whenClosing() {
+        ConnectionManager.getSolverManager().removeConnection(this.getConnectionMessage().getSocket().socket());
+        this.getConnectionMessage().closeSocket();
+        return null;
+    }
+
+    @Override
+    public ConnectionStatus whenWaiting() {
+        return getIOStatus();
     }
 
     protected ConnectionStatus getIOStatus() {
@@ -113,16 +122,6 @@ public abstract class AbstractSolver extends AbstractServer {
         if (writerBuffer != null && writerBuffer.position() == writerBuffer.limit()) {
             writerBuffer = null;
         }
-    }
-
-    protected void toReading() {
-        this.connectionStatus = ConnectionStatus.READING;
-        this.getConnectionMessage().getSelectionKey().interestOps(SelectionKey.OP_READ);
-    }
-
-    protected void toWriting() {
-        this.connectionStatus = ConnectionStatus.WRITING;
-        this.getConnectionMessage().getSelectionKey().interestOps(SelectionKey.OP_WRITE);
     }
 
     protected abstract AbstractSolver getOther();

@@ -5,7 +5,6 @@ import net.tool.connectionManager.ConnectionManager;
 import net.tool.connectionManager.SelectorManager;
 import net.tool.connectionSolver.ConnectionMessageImpl;
 import net.tool.connectionSolver.ConnectionStatus;
-import net.tool.packageSolver.packageWriter.packageWriterFactory.HttpRequestPackageWriterFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -18,24 +17,26 @@ import java.nio.channels.SocketChannel;
  */
 public class ProxyServerConnectionSolver extends AbstractSolver {
 
+    private boolean isConnect;
     private BrowserConnectionSolver browserConnectionSolver;
 
     public ProxyServerConnectionSolver(BrowserConnectionSolver browserConnectionSolver) {
         super(new ConnectionMessageImpl());
         this.browserConnectionSolver = browserConnectionSolver;
+        this.isConnect = false;
         whenInit();
         this.connectionStatus = ConnectionStatus.CONNECTING;
     }
 
     @Override
     public ConnectionStatus whenInit() {
-        this.addBytes(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
-                .setCommand("GET")
-                .setHost("server")
-                .setUrl("/login")
-                .setVersion("HTTP/1.1")
-                .addMessage("Password", Data.getPassword())
-                .getHttpPackageBytes());
+//        this.addBytes(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
+//                .setCommand("GET")
+//                .setHost("server")
+//                .setUrl("/login")
+//                .setVersion("HTTP/1.1")
+//                .addMessage("Password", Data.getPassword())
+//                .getHttpPackageBytes());
 
         try {
             SocketChannel socketChannel = SocketChannel.open();
@@ -55,25 +56,28 @@ public class ProxyServerConnectionSolver extends AbstractSolver {
 
     @Override
     public ConnectionStatus whenConnecting() {
+        System.out.println("connecting");
         if (this.getConnectionMessage().getSelectionKey().isConnectable()) {
             SocketChannel socket = this.getConnectionMessage().getSocket();
             try {
                 if (socket.finishConnect()) {
+                    System.out.println("connect ok");
+                    isConnect = true;
                     return afterIO();
                 } else {
-                    return ConnectionStatus.CONNECTING;
+                    return ConnectionStatus.WAITING;
                 }
             } catch (IOException e) {
                 return ConnectionStatus.ERROR;
             }
         } else {
-            return ConnectionStatus.CONNECTING;
+            return ConnectionStatus.WAITING;
         }
     }
 
     @Override
     public ConnectionStatus whenWaiting() {
-        if (this.getConnectionStatus().equals(ConnectionStatus.CONNECTING)) {
+        if (!isConnect) {
             return ConnectionStatus.CONNECTING;
         }
         return super.whenWaiting();

@@ -24,9 +24,9 @@ public class ClientConnectionSolver extends ProxyReadServer {
 
     @Override
     public ConnectionStatus whenReading() {
-        if (!checked) {
-            return readPasswordPackage();
-        }
+//        if (!checked) {
+//            return readPasswordPackage();
+//        }
         return super.whenReading();
     }
 
