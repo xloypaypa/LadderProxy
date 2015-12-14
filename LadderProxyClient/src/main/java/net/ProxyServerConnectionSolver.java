@@ -18,8 +18,8 @@ import java.nio.channels.SocketChannel;
  */
 public class ProxyServerConnectionSolver extends AbstractSolver {
 
-    private boolean isConnect;
-    private BrowserConnectionSolver browserConnectionSolver;
+    private volatile boolean isConnect;
+    private volatile BrowserConnectionSolver browserConnectionSolver;
 
     public ProxyServerConnectionSolver(BrowserConnectionSolver browserConnectionSolver) {
         super(new ConnectionMessageImpl());
@@ -42,13 +42,15 @@ public class ProxyServerConnectionSolver extends AbstractSolver {
         try {
             SocketChannel socketChannel = SocketChannel.open();
             socketChannel.configureBlocking(false);
-            socketChannel.connect(new InetSocketAddress(Data.getServerIp(), Data.getServerPort()));
 
             this.getConnectionMessage().setSocket(socketChannel);
-            ConnectionManager.getSolverManager().putSolver(socketChannel.socket(), this);
+            this.getConnectionMessage().setServerName("ladder proxy client");
 
+            ConnectionManager.getSolverManager().putSolver(socketChannel.socket(), this);
             SelectorManager.getSelectorManager().getOneSelectorThread("ladder proxy client")
                     .addSocketChannel(socketChannel, SelectionKey.OP_CONNECT);
+
+            socketChannel.connect(new InetSocketAddress(Data.getServerIp(), Data.getServerPort()));
             return ConnectionStatus.WAITING;
         } catch (IOException e) {
             return ConnectionStatus.ERROR;

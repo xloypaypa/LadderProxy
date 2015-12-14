@@ -8,6 +8,7 @@ import net.tool.connectionSolver.ConnectionStatus;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -30,6 +31,9 @@ public abstract class AbstractSolver extends AbstractServer {
 
     @Override
     public ConnectionStatus whenReading() {
+        if (this.getOther().isEnd) {
+            return ConnectionStatus.CLOSE;
+        }
         try {
             int read = this.getConnectionMessage().getSocket().read(readBuffer);
             if (read < 0) {
@@ -56,6 +60,9 @@ public abstract class AbstractSolver extends AbstractServer {
 
     @Override
     public ConnectionStatus whenWriting() {
+        if (this.getOther().isEnd) {
+            return ConnectionStatus.CLOSE;
+        }
         try {
             if (this.getConnectionMessage().getSocket().write(writerBuffer) < 0) {
                 return ConnectionStatus.CLOSE;
@@ -68,6 +75,7 @@ public abstract class AbstractSolver extends AbstractServer {
 
     @Override
     public ConnectionStatus whenError() {
+        System.out.println(this.getClass() + " error " + new Date().toString());
         return ConnectionStatus.CLOSE;
     }
 
@@ -89,9 +97,15 @@ public abstract class AbstractSolver extends AbstractServer {
 
     @Override
     public ConnectionStatus whenClosing() {
+        try {
+            System.out.println(getConnectionMessage().getSelectionKey().interestOps());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        System.out.println(this.getClass() + " close");
         this.isEnd = true;
         ConnectionManager.getSolverManager().removeConnection(this.getConnectionMessage().getSocket().socket());
-        this.getConnectionMessage().getSelectionKey().cancel();
         this.getConnectionMessage().closeSocket();
         return null;
     }

@@ -17,8 +17,8 @@ import java.io.IOException;
  */
 public class ClientConnectionSolver extends AbstractSolver {
 
-    private boolean isFirst = true, isCheck = true;
-    private PackageReader packageReader;
+    private volatile boolean isFirst = true,  isCheck = true;
+    private volatile PackageReader packageReader;
 
     private HostServerConnectionSolver hostServerConnectionSolver;
 

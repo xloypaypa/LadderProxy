@@ -17,10 +17,10 @@ import java.nio.channels.SocketChannel;
 public class HostServerConnectionSolver extends AbstractSolver {
 
     private final String host;
-    private int port;
+    private volatile int port;
 
-    private boolean isConnect;
-    private ClientConnectionSolver clientConnectionSolver;
+    private volatile boolean isConnect;
+    private volatile ClientConnectionSolver clientConnectionSolver;
 
     public HostServerConnectionSolver(ClientConnectionSolver clientConnectionSolver, String host, int port) {
         super(new ConnectionMessageImpl());

@@ -11,7 +11,7 @@ import java.nio.ByteBuffer;
  */
 public class BrowserConnectionSolver extends AbstractSolver {
 
-    private ProxyServerConnectionSolver proxyServerConnectionSolver;
+    private volatile ProxyServerConnectionSolver proxyServerConnectionSolver;
 
     public BrowserConnectionSolver(ConnectionMessage connectionMessage) {
         super(connectionMessage);
@@ -26,14 +26,6 @@ public class BrowserConnectionSolver extends AbstractSolver {
     public ConnectionStatus whenInit() {
         this.proxyServerConnectionSolver = new ProxyServerConnectionSolver(this);
         return ConnectionStatus.READING;
-    }
-
-    @Override
-    public ConnectionStatus whenReading() {
-        if (this.getOther().isEnd) {
-            return ConnectionStatus.CLOSE;
-        }
-        return super.whenReading();
     }
 
     @Override
