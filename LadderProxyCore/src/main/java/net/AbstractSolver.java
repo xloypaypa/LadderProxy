@@ -8,7 +8,6 @@ import net.tool.connectionSolver.ConnectionStatus;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -75,11 +74,13 @@ public abstract class AbstractSolver extends AbstractServer {
 
     @Override
     public ConnectionStatus whenError() {
-        System.out.println(this.getClass() + " error " + new Date().toString());
         return ConnectionStatus.CLOSE;
     }
 
     public void addBytes(byte[] bytes) {
+        if (bytes.length == 0) {
+            return ;
+        }
         writeList.add(bytes);
         if (this.getConnectionMessage().getSelectionKey() != null && this.getConnectionMessage().getSelectionKey().interestOps() != SelectionKey.OP_CONNECT) {
             toWriting();
@@ -97,21 +98,18 @@ public abstract class AbstractSolver extends AbstractServer {
 
     @Override
     public ConnectionStatus whenClosing() {
-        try {
-            System.out.println(getConnectionMessage().getSelectionKey().interestOps());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        System.out.println(this.getClass() + " close");
         this.isEnd = true;
         ConnectionManager.getSolverManager().removeConnection(this.getConnectionMessage().getSocket().socket());
         this.getConnectionMessage().closeSocket();
-        return null;
+        return ConnectionStatus.WAITING;
     }
 
     @Override
     public ConnectionStatus whenWaiting() {
+        if (this.getConnectionMessage().getSocket().socket().isClosed()) {
+            ConnectionManager.getSolverManager().removeConnection(this.getConnectionMessage().getSocket().socket());
+            return ConnectionStatus.WAITING;
+        }
         return getIOStatus();
     }
 
