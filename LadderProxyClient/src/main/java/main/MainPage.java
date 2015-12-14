@@ -20,6 +20,10 @@ public class MainPage {
     private JTextField localPort;
 
     public MainPage() {
+        ip.setText(Data.getServerIp());
+        password.setText(Data.getPassword());
+        port.setText(String.valueOf(Data.getServerPort()));
+
         connectButton.addActionListener(e -> {
             ip.setEnabled(false);
             port.setEnabled(false);

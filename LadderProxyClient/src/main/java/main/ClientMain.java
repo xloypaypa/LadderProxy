@@ -5,6 +5,8 @@ import net.BrowserConnectionSolver;
 import net.server.Server;
 import net.tool.connectionSolver.ConnectionMessageImpl;
 
+import java.io.IOException;
+
 /**
  * Created by xlo on 15-12-13.
  * it's the main class
@@ -12,6 +14,12 @@ import net.tool.connectionSolver.ConnectionMessageImpl;
 public class ClientMain {
 
     public static void main(String[] args) {
+
+        try {
+            Data.load();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         if (args.length == 4) {
             startServer(args[0], args[1], args[2], args[3]);
@@ -24,6 +32,12 @@ public class ClientMain {
         Data.setPassword(password);
         Data.setServerIp(ip);
         Data.setServerPort(Integer.valueOf(serverPort));
+
+        try {
+            Data.save();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         new Thread() {
             @Override

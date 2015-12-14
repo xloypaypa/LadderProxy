@@ -1,5 +1,8 @@
 package data;
 
+import java.io.*;
+import java.util.Scanner;
+
 /**
  * Created by xlo on 15-12-13.
  * it's the data
@@ -31,5 +34,20 @@ public class Data {
 
     public static void setServerPort(int serverPort) {
         Data.serverPort = serverPort;
+    }
+
+    public static void save() throws IOException {
+        FileOutputStream fileOutputStream = new FileOutputStream(new File("./ladderProxyConfig.ladder"));
+        fileOutputStream.write((password + "\r\n").getBytes());
+        fileOutputStream.write((serverIp + "\r\n").getBytes());
+        fileOutputStream.write((serverPort + "\r\n").getBytes());
+    }
+
+    public static void load() throws IOException {
+        Scanner scanner = new Scanner(new FileInputStream(new File("./ladderProxyConfig.ladder")));
+        password = scanner.next();
+        serverIp = scanner.next();
+        serverPort = scanner.nextInt();
+        scanner.close();
     }
 }
