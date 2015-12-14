@@ -1,4 +1,5 @@
 rootProject.name = 'LadderProxy'
 include 'LadderProxyServer'
 include 'LadderProxyClient'
+include 'LadderProxyCore'
 
