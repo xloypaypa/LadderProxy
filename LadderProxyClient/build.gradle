@@ -9,6 +9,16 @@ repositories {
     mavenLocal()
 }
 
+jar {
+    manifest {
+        attributes "Main-Class": "main.ClientMain"
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
 dependencies {
     compile (project(":LadderProxyCore"))
     compile "ladder:ladder:1.5.0"
