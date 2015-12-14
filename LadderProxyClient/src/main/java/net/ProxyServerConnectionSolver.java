@@ -56,12 +56,10 @@ public class ProxyServerConnectionSolver extends AbstractSolver {
 
     @Override
     public ConnectionStatus whenConnecting() {
-        System.out.println("connecting");
         if (this.getConnectionMessage().getSelectionKey().isConnectable()) {
             SocketChannel socket = this.getConnectionMessage().getSocket();
             try {
                 if (socket.finishConnect()) {
-                    System.out.println("connect ok");
                     isConnect = true;
                     return afterIO();
                 } else {

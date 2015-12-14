@@ -29,6 +29,14 @@ public class BrowserConnectionSolver extends AbstractSolver {
     }
 
     @Override
+    public ConnectionStatus whenReading() {
+        if (this.getOther().isEnd) {
+            return ConnectionStatus.CLOSE;
+        }
+        return super.whenReading();
+    }
+
+    @Override
     public ConnectionStatus whenConnecting() {
         return null;
     }

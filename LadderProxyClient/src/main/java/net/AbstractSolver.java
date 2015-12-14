@@ -18,7 +18,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 public abstract class AbstractSolver extends AbstractServer {
 
     protected final BlockingQueue<byte[]> writeList;
-    protected ByteBuffer readBuffer, writerBuffer;
+    protected volatile ByteBuffer readBuffer, writerBuffer;
+    protected volatile boolean isEnd = false;
 
     public AbstractSolver(ConnectionMessage connectionMessage) {
         super(connectionMessage);
@@ -67,7 +68,7 @@ public abstract class AbstractSolver extends AbstractServer {
 
     public void addBytes(byte[] bytes) {
         writeList.add(bytes);
-        if (this.getConnectionMessage().getSelectionKey() != null) {
+        if (this.getConnectionMessage().getSelectionKey() != null && this.getConnectionMessage().getSelectionKey().interestOps() != SelectionKey.OP_CONNECT) {
             toWriting();
             this.getConnectionMessage().getSelectionKey().selector().wakeup();
         }
@@ -83,7 +84,9 @@ public abstract class AbstractSolver extends AbstractServer {
 
     @Override
     public ConnectionStatus whenClosing() {
+        this.isEnd = true;
         ConnectionManager.getSolverManager().removeConnection(this.getConnectionMessage().getSocket().socket());
+        this.getConnectionMessage().getSelectionKey().cancel();
         this.getConnectionMessage().closeSocket();
         return null;
     }
