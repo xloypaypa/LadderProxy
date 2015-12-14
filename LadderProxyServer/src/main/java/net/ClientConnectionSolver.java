@@ -7,6 +7,7 @@ import net.tool.packageSolver.PackageStatus;
 import net.tool.packageSolver.headSolver.HttpRequestHeadSolver;
 import net.tool.packageSolver.packageReader.HttpPackageReader;
 import net.tool.packageSolver.packageReader.PackageReader;
+import net.tool.packageSolver.packageWriter.packageWriterFactory.HttpReplyPackageWriterFactory;
 
 import java.io.IOException;
 
@@ -66,7 +67,15 @@ public class ClientConnectionSolver extends AbstractSolver {
                     isFirst = false;
                     HttpRequestHeadSolver httpRequestHeadSolver = (HttpRequestHeadSolver) this.packageReader.getHeadPart();
                     this.hostServerConnectionSolver = new HostServerConnectionSolver(this, httpRequestHeadSolver.getHost(), httpRequestHeadSolver.getPort());
-                    this.hostServerConnectionSolver.addBytes(this.packageReader.getPackage());
+
+                    if (httpRequestHeadSolver.getCommand().equals("CONNECT")) {
+                        this.addBytes(HttpReplyPackageWriterFactory
+                                .getHttpReplyPackageWriterFactory()
+                                .setMessage("Connection Established").addMessage("Proxy-agent", "Ladder-Proxy")
+                                .getHttpPackageBytes());
+                    } else {
+                        this.hostServerConnectionSolver.addBytes(this.packageReader.getPackage());
+                    }
                     this.hostServerConnectionSolver.addBytes(this.packageReader.stop());
                     return ConnectionStatus.WAITING;
                 } else if (packageStatus.equals(PackageStatus.WAITING)) {
