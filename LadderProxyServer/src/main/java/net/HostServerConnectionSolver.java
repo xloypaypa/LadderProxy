@@ -1,11 +1,9 @@
 package net;
 
-import data.Data;
 import net.tool.connectionManager.ConnectionManager;
 import net.tool.connectionManager.SelectorManager;
 import net.tool.connectionSolver.ConnectionMessageImpl;
 import net.tool.connectionSolver.ConnectionStatus;
-import net.tool.packageSolver.packageWriter.packageWriterFactory.HttpRequestPackageWriterFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -16,14 +14,19 @@ import java.nio.channels.SocketChannel;
  * Created by xlo on 15-12-13.
  * it's the proxy server connection solver
  */
-public class ProxyServerConnectionSolver extends AbstractSolver {
+public class HostServerConnectionSolver extends AbstractSolver {
+
+    private final String host;
+    private int port;
 
     private boolean isConnect;
-    private BrowserConnectionSolver browserConnectionSolver;
+    private ClientConnectionSolver clientConnectionSolver;
 
-    public ProxyServerConnectionSolver(BrowserConnectionSolver browserConnectionSolver) {
+    public HostServerConnectionSolver(ClientConnectionSolver clientConnectionSolver, String host, int port) {
         super(new ConnectionMessageImpl());
-        this.browserConnectionSolver = browserConnectionSolver;
+        this.host = host;
+        this.port = port;
+        this.clientConnectionSolver = clientConnectionSolver;
         this.isConnect = false;
         whenInit();
         this.connectionStatus = ConnectionStatus.CONNECTING;
@@ -31,23 +34,15 @@ public class ProxyServerConnectionSolver extends AbstractSolver {
 
     @Override
     public ConnectionStatus whenInit() {
-        this.addBytes(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
-                .setCommand("GET")
-                .setHost("server")
-                .setUrl("/login")
-                .setVersion("HTTP/1.1")
-                .addMessage("Password", Data.getPassword())
-                .getHttpPackageBytes());
-
         try {
             SocketChannel socketChannel = SocketChannel.open();
             socketChannel.configureBlocking(false);
-            socketChannel.connect(new InetSocketAddress(Data.getServerIp(), Data.getServerPort()));
+            socketChannel.connect(new InetSocketAddress(host, port));
 
             this.getConnectionMessage().setSocket(socketChannel);
             ConnectionManager.getSolverManager().putSolver(socketChannel.socket(), this);
 
-            SelectorManager.getSelectorManager().getOneSelectorThread("ladder proxy client")
+            SelectorManager.getSelectorManager().getOneSelectorThread("ladder proxy server")
                     .addSocketChannel(socketChannel, SelectionKey.OP_CONNECT);
             return ConnectionStatus.WAITING;
         } catch (IOException e) {
@@ -84,6 +79,6 @@ public class ProxyServerConnectionSolver extends AbstractSolver {
 
     @Override
     protected AbstractSolver getOther() {
-        return this.browserConnectionSolver;
+        return this.clientConnectionSolver;
     }
 }
