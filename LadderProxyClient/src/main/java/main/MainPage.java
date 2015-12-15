@@ -24,6 +24,7 @@ public class MainPage {
         ip.setText(Data.getServerIp());
         password.setText(Data.getPassword());
         port.setText(String.valueOf(Data.getServerPort()));
+        localPort.setText("8080");
 
         connectButton.addActionListener(e -> {
             ip.setEnabled(false);
