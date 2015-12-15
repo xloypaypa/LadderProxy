@@ -2,6 +2,8 @@ package main;
 
 import data.Data;
 import net.ClientConnectionSolver;
+import net.OneClient;
+import net.server.Client;
 import net.server.Server;
 import net.tool.connectionSolver.ConnectionMessageImpl;
 
@@ -27,6 +29,9 @@ public class ServerMain {
         }
 
         Data.setPassword(password);
+
+        Client client = OneClient.getClient();
+        client.getInstance(5);
 
         Server server = Server.getNewServer("ladder proxy server",
                 () -> new ClientConnectionSolver(new ConnectionMessageImpl()));

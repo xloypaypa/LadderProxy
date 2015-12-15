@@ -2,6 +2,8 @@ package main;
 
 import data.Data;
 import net.BrowserConnectionSolver;
+import net.OneClient;
+import net.server.Client;
 import net.server.Server;
 import net.tool.connectionSolver.ConnectionMessageImpl;
 
@@ -32,6 +34,9 @@ public class ClientMain {
         Data.setPassword(password);
         Data.setServerIp(ip);
         Data.setServerPort(Integer.valueOf(serverPort));
+
+        Client client = OneClient.getClient();
+        client.getInstance(5);
 
         try {
             Data.save();
