@@ -92,11 +92,6 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
     }
 
     @Override
-    public ConnectionStatus whenClosing() {
-        return super.whenClosing();
-    }
-
-    @Override
     protected void connectOtherSolver(String host, int port) throws IOException {
         this.ioNode = new HostConnectionSolver(new ConnectionMessageImpl(), this);
         OneClient.getClient().connect(host, port, this.ioNode);

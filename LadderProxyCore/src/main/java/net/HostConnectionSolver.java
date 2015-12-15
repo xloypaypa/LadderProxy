@@ -74,6 +74,7 @@ public class HostConnectionSolver extends IONode {
     @Override
     public ConnectionStatus whenClosing() {
         ioNode.setClosed(true);
+        ioNode.addMessage("close".getBytes());
         return super.whenClosing();
     }
 
