@@ -8,6 +8,7 @@ import net.tool.packageSolver.PackageStatus;
 import net.tool.packageSolver.headSolver.HttpRequestHeadSolver;
 import net.tool.packageSolver.packageReader.HttpPackageReader;
 import net.tool.packageSolver.packageReader.PackageReader;
+import net.tool.packageSolver.packageWriter.packageWriterFactory.HttpReplyPackageWriterFactory;
 
 import java.io.IOException;
 
@@ -69,8 +70,14 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
         isFirst = false;
         HttpRequestHeadSolver httpRequestHeadSolver = (HttpRequestHeadSolver) packageReader.getHeadPart();
         connectOtherSolver(httpRequestHeadSolver.getHost(), httpRequestHeadSolver.getPort());
-        this.ioNode.addMessage(this.packageReader.getPackage());
-        this.ioNode.addMessage(this.packageReader.stop());
+
+        if (httpRequestHeadSolver.getCommand().equals("CONNECT")) {
+            this.addMessage(HttpReplyPackageWriterFactory.getHttpReplyPackageWriterFactory()
+            .setVersion("HTTP/1.1").setMessage("OK").setReply(200).getHttpPackageBytes());
+        } else {
+            this.ioNode.addMessage(this.packageReader.getPackage());
+            this.ioNode.addMessage(this.packageReader.stop());
+        }
         return afterIO();
     }
 
