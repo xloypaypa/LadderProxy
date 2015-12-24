@@ -9,6 +9,7 @@ import java.util.Scanner;
  */
 public class Data {
     private volatile static String password = "123";
+    private volatile static byte[] key;
     private volatile static String serverIp = "127.0.0.1";
     private volatile static int serverPort = 8000;
 
@@ -34,6 +35,14 @@ public class Data {
 
     public static void setServerPort(int serverPort) {
         Data.serverPort = serverPort;
+    }
+
+    public static void setKey(byte[] key) {
+        Data.key = key;
+    }
+
+    public static byte[] getKey() {
+        return key;
     }
 
     public static void save() throws IOException {
