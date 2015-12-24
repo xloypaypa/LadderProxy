@@ -14,9 +14,6 @@ import java.nio.ByteBuffer;
  */
 public class BrowserConnectionSolver extends IONode {
 
-    private ByteBuffer byteBuffer;
-    protected volatile IONode ioNode;
-
     public BrowserConnectionSolver(ConnectionMessage connectionMessage) {
         super(connectionMessage);
     }
@@ -48,14 +45,7 @@ public class BrowserConnectionSolver extends IONode {
                 afterIO();
                 return ConnectionStatus.WAITING;
             } else {
-                byteBuffer.flip();
-                byte[] message = new byte[len];
-                for (int i = 0; i < len; i++) {
-                    message[i] = byteBuffer.get();
-                }
-                this.ioNode.addMessage(message);
-                byteBuffer.clear();
-                return ConnectionStatus.READING;
+                return ReadOnce(len);
             }
         } catch (IOException e) {
             this.sendException(e);

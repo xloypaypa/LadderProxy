@@ -18,6 +18,8 @@ import java.util.concurrent.LinkedBlockingDeque;
 public abstract class IONode extends AbstractServer {
     protected volatile BlockingQueue<byte[]> messageQueue;
     protected volatile ByteBuffer writeBuffer;
+    protected volatile IONode ioNode;
+    protected ByteBuffer byteBuffer;
     private boolean isClosed = false;
 
     public IONode(ConnectionMessage connectionMessage) {
@@ -41,6 +43,17 @@ public abstract class IONode extends AbstractServer {
             this.sendException(e);
             return ConnectionStatus.ERROR;
         }
+    }
+
+    protected ConnectionStatus ReadOnce(int len) {
+        byteBuffer.flip();
+        byte[] message = new byte[len];
+        for (int i = 0; i < len; i++) {
+            message[i] = byteBuffer.get();
+        }
+        this.ioNode.addMessage(message);
+        byteBuffer.clear();
+        return ConnectionStatus.READING;
     }
 
     @Override
@@ -114,7 +127,11 @@ public abstract class IONode extends AbstractServer {
         }
 
         if (writeBuffer == null && !messageQueue.isEmpty()) {
-            writeBuffer = ByteBuffer.wrap(messageQueue.poll());
+            buildOutput();
         }
+    }
+
+    protected void buildOutput() {
+        writeBuffer = ByteBuffer.wrap(messageQueue.poll());
     }
 }

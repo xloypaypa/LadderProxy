@@ -13,9 +13,6 @@ import java.nio.channels.SocketChannel;
  */
 public class HostConnectionSolver extends IONode {
 
-    private ByteBuffer byteBuffer;
-    private volatile IONode ioNode;
-
     public HostConnectionSolver(ConnectionMessage connectionMessage, IONode ioNode) {
         super(connectionMessage);
         this.ioNode = ioNode;
@@ -56,14 +53,7 @@ public class HostConnectionSolver extends IONode {
                 afterIO();
                 return ConnectionStatus.WAITING;
             } else {
-                byteBuffer.flip();
-                byte[] message = new byte[len];
-                for (int i = 0; i < len; i++) {
-                    message[i] = byteBuffer.get();
-                }
-                this.ioNode.addMessage(message);
-                byteBuffer.clear();
-                return ConnectionStatus.READING;
+                return ReadOnce(len);
             }
         } catch (IOException e) {
             this.sendException(e);
