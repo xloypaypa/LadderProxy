@@ -22,8 +22,8 @@ import java.security.PublicKey;
 public class ClientConnectionSolver extends BrowserConnectionSolver {
 
     private PackageReader packageReader;
-    private boolean isFirst, isCheck;
-    private PublicKey publicKey;
+    private volatile boolean isFirst, isCheck;
+    private volatile PublicKey publicKey;
 
     public ClientConnectionSolver(ConnectionMessage connectionMessage) {
         super(connectionMessage);
@@ -34,7 +34,12 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
         super.whenInit();
         this.isFirst = isCheck = true;
         this.packageReader = new HttpPackageReader(this.getConnectionMessage().getSocket());
-        return ConnectionStatus.CONNECTING;
+        return ConnectionStatus.WAITING;
+    }
+
+    @Override
+    public ConnectionStatus whenConnecting() {
+        return null;
     }
 
     @Override
@@ -72,7 +77,7 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
 
         if (httpRequestHeadSolver.getCommand().equals("CONNECT")) {
             this.addMessage(HttpReplyPackageWriterFactory.getHttpReplyPackageWriterFactory()
-            .setVersion("HTTP/1.1").setMessage("OK").setReply(200).getHttpPackageBytes());
+                    .setVersion("HTTP/1.1").setMessage("OK").setReply(200).getHttpPackageBytes());
         } else {
             this.ioNode.addMessage(this.packageReader.getPackage());
             this.ioNode.addMessage(this.packageReader.stop());
@@ -85,7 +90,7 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
         this.publicKey = RSA.bytes2PublicKey(this.packageReader.getBody());
 
         byte[] body = RSA.publicKey2Bytes(Data.getKeyPair().getPublic());
-        this.ioNode.addMessage(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
+        this.addMessage(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
                 .setCommand("GET").setHost("server").setUrl(".login").setVersion("HTTP/1.1")
                 .addMessage("Content-Length", body.length + "")
                 .setBody(body).getHttpPackageBytes());
