@@ -1,8 +1,10 @@
 package data;
 
-import encrypt.AES;
-
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.security.KeyPair;
 import java.util.Scanner;
 
 /**
@@ -11,7 +13,7 @@ import java.util.Scanner;
  */
 public class Data {
     private volatile static String password = "123";
-    private volatile static byte[] key;
+    private volatile static KeyPair keyPair;
     private volatile static String serverIp = "127.0.0.1";
     private volatile static int serverPort = 8000;
 
@@ -39,18 +41,12 @@ public class Data {
         Data.serverPort = serverPort;
     }
 
-    public static byte[] getKey() {
-        if (key == null) {
-            synchronized (Data.class) {
-                if (key == null) {
-                    key = AES.getRawKey(password);
-                    for (byte now : key) {
-                        System.out.println(now);
-                    }
-                }
-            }
-        }
-        return key;
+    public static void setKeyPair(KeyPair keyPair) {
+        Data.keyPair = keyPair;
+    }
+
+    public static KeyPair getKeyPair() {
+        return keyPair;
     }
 
     public static void save() throws IOException {
