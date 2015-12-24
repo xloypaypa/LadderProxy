@@ -1,5 +1,7 @@
 package data;
 
+import encrypt.AES;
+
 import java.io.*;
 import java.util.Scanner;
 
@@ -37,11 +39,17 @@ public class Data {
         Data.serverPort = serverPort;
     }
 
-    public static void setKey(byte[] key) {
-        Data.key = key;
-    }
-
     public static byte[] getKey() {
+        if (key == null) {
+            synchronized (Data.class) {
+                if (key == null) {
+                    key = AES.getRawKey(password);
+                    for (byte now : key) {
+                        System.out.println(now);
+                    }
+                }
+            }
+        }
         return key;
     }
 

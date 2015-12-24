@@ -8,7 +8,7 @@ import java.security.SecureRandom;
 
 public class AES {
 
-    private static byte[] encrypt(byte[] rawKey, byte[] message) {
+    public static byte[] encrypt(byte[] rawKey, byte[] message) {
         try {
             SecretKeySpec secretKeySpec = new SecretKeySpec(rawKey, "AES");
             Cipher cipher = Cipher.getInstance("AES");
@@ -19,7 +19,7 @@ public class AES {
         }
     }
 
-    private static byte[] decrypt(byte[] rawKey, byte[] encrypted) {
+    public static byte[] decrypt(byte[] rawKey, byte[] encrypted) {
         try {
             SecretKeySpec secretKeySpec = new SecretKeySpec(rawKey, "AES");
             Cipher cipher = Cipher.getInstance("AES");
@@ -30,7 +30,7 @@ public class AES {
         }
     }
 
-    private static byte[] getRawKey(String password) {
+    public static byte[] getRawKey(String password) {
         try {
             KeyGenerator key = KeyGenerator.getInstance("AES");
             SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
