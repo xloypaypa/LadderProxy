@@ -1,6 +1,7 @@
 package main;
 
 import data.Data;
+import encrypt.RSA;
 import net.BrowserConnectionSolver;
 import net.OneClient;
 import net.server.Client;
@@ -15,7 +16,8 @@ import java.io.IOException;
  */
 public class ClientMain {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
+        Data.setKeyPair(RSA.buildKeyPair());
 
         try {
             Data.load();
@@ -24,14 +26,13 @@ public class ClientMain {
         }
 
         if (args.length == 4) {
-            startServer(args[0], args[1], args[2], args[3]);
+            startServer(args[0], args[1], args[2]);
         } else {
             new MainPage().create();
         }
     }
 
-    public static void startServer(String ip, String serverPort, String localPort, String password) {
-        Data.setPassword(password);
+    public static void startServer(String ip, String serverPort, String localPort) {
         Data.setServerIp(ip);
         Data.setServerPort(Integer.valueOf(serverPort));
 

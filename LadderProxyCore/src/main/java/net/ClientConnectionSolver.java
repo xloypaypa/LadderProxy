@@ -1,6 +1,7 @@
 package net;
 
 import data.Data;
+import encrypt.RSA;
 import net.tool.connectionSolver.ConnectionMessage;
 import net.tool.connectionSolver.ConnectionMessageImpl;
 import net.tool.connectionSolver.ConnectionStatus;
@@ -9,8 +10,10 @@ import net.tool.packageSolver.headSolver.HttpRequestHeadSolver;
 import net.tool.packageSolver.packageReader.HttpPackageReader;
 import net.tool.packageSolver.packageReader.PackageReader;
 import net.tool.packageSolver.packageWriter.packageWriterFactory.HttpReplyPackageWriterFactory;
+import net.tool.packageSolver.packageWriter.packageWriterFactory.HttpRequestPackageWriterFactory;
 
 import java.io.IOException;
+import java.security.PublicKey;
 
 /**
  * Created by xlo on 2015/12/15.
@@ -20,6 +23,7 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
 
     private PackageReader packageReader;
     private boolean isFirst, isCheck;
+    private PublicKey publicKey;
 
     public ClientConnectionSolver(ConnectionMessage connectionMessage) {
         super(connectionMessage);
@@ -30,12 +34,7 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
         super.whenInit();
         this.isFirst = isCheck = true;
         this.packageReader = new HttpPackageReader(this.getConnectionMessage().getSocket());
-        return ConnectionStatus.WAITING;
-    }
-
-    @Override
-    public ConnectionStatus whenConnecting() {
-        return null;
+        return ConnectionStatus.CONNECTING;
     }
 
     @Override
@@ -83,12 +82,14 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
 
     private ConnectionStatus whenCheck() throws IOException {
         isCheck = false;
-        HttpRequestHeadSolver httpRequestHeadSolver = (HttpRequestHeadSolver) packageReader.getHeadPart();
-        if (Data.getPassword().equals(httpRequestHeadSolver.getMessage("Password"))) {
-            return ConnectionStatus.READING;
-        } else {
-            return ConnectionStatus.CLOSE;
-        }
+        this.publicKey = RSA.bytes2PublicKey(this.packageReader.getBody());
+
+        byte[] body = RSA.publicKey2Bytes(Data.getKeyPair().getPublic());
+        this.ioNode.addMessage(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
+                .setCommand("GET").setHost("server").setUrl(".login").setVersion("HTTP/1.1")
+                .addMessage("Content-Length", body.length + "")
+                .setBody(body).getHttpPackageBytes());
+        return ConnectionStatus.READING;
     }
 
     @Override

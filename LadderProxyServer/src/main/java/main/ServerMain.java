@@ -1,6 +1,7 @@
 package main;
 
 import data.Data;
+import encrypt.RSA;
 import net.ClientConnectionSolver;
 import net.OneClient;
 import net.server.Client;
@@ -13,10 +14,11 @@ import net.tool.connectionSolver.ConnectionMessageImpl;
  */
 public class ServerMain {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
+        Data.setKeyPair(RSA.buildKeyPair());
+
         int port = 8000;
         int num = 5;
-        String password = "123";
 
         if (args.length > 0) {
             port = Integer.valueOf(args[0]);
@@ -24,11 +26,6 @@ public class ServerMain {
         if (args.length > 1) {
             num = Integer.valueOf(args[1]);
         }
-        if (args.length > 2) {
-            password = args[2];
-        }
-
-        Data.setPassword(password);
 
         Client client = OneClient.getClient();
         client.getInstance(5);

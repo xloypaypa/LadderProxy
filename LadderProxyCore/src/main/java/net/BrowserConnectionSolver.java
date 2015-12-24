@@ -4,7 +4,6 @@ import data.Data;
 import net.tool.connectionSolver.ConnectionMessage;
 import net.tool.connectionSolver.ConnectionMessageImpl;
 import net.tool.connectionSolver.ConnectionStatus;
-import net.tool.packageSolver.packageWriter.packageWriterFactory.HttpRequestPackageWriterFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -74,10 +73,7 @@ public class BrowserConnectionSolver extends IONode {
     }
 
     protected void connectOtherSolver(String host, int port) throws IOException {
-        this.ioNode = new HostConnectionSolver(new ConnectionMessageImpl(), this);
+        this.ioNode = new ServerConnectionSolver(new ConnectionMessageImpl(), this);
         OneClient.getClient().connect(host, port, this.ioNode);
-        this.ioNode.addMessage(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
-        .setCommand("GET").setHost("server").setUrl(".login").setVersion("HTTP/1.1").addMessage("Password", Data.getPassword())
-                .getHttpPackageBytes());
     }
 }
