@@ -24,8 +24,7 @@ import java.security.PublicKey;
 public class ClientConnectionSolver extends BrowserConnectionSolver {
 
     private PackageReader packageReader;
-    private volatile boolean isFirst, isCheck;
-    private volatile PublicKey publicKey;
+    private volatile boolean isFirst;
 
     public ClientConnectionSolver(ConnectionMessage connectionMessage) {
         super(connectionMessage);
@@ -34,7 +33,7 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
     @Override
     public ConnectionStatus whenInit() {
         super.whenInit();
-        this.isFirst = isCheck = true;
+        this.isFirst = true;
         this.packageReader = new HttpPackageReader(this.getConnectionMessage().getSocket());
         return ConnectionStatus.WAITING;
     }
@@ -46,15 +45,11 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
 
     @Override
     public ConnectionStatus whenReading() {
-        if (this.isFirst || this.isCheck) {
+        if (this.isFirst) {
             try {
                 PackageStatus packageStatus = packageReader.read();
                 if (packageStatus.equals(PackageStatus.END)) {
-                    if (isCheck) {
-                        return whenCheck();
-                    } else {
-                        return whenFirst();
-                    }
+                    return whenFirst();
                 } else if (packageStatus.equals(PackageStatus.WAITING)) {
                     afterIO();
                     return ConnectionStatus.WAITING;
@@ -85,18 +80,6 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
             this.ioNode.addMessage(this.packageReader.stop());
         }
         return afterIO();
-    }
-
-    private ConnectionStatus whenCheck() throws IOException {
-        isCheck = false;
-        this.publicKey = RSA.bytes2PublicKey(this.packageReader.getBody());
-
-        byte[] body = RSA.publicKey2Bytes(Data.getKeyPair().getPublic());
-        this.addMessage(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
-                .setCommand("GET").setHost("server").setUrl(".login").setVersion("HTTP/1.1")
-                .addMessage("Content-Length", body.length + "")
-                .setBody(body).getHttpPackageBytes());
-        return ConnectionStatus.READING;
     }
 
     @Override

@@ -2,8 +2,8 @@ package main;
 
 import data.Data;
 import encrypt.RSA;
-import net.ClientConnectionSolver;
-import net.OneClient;
+import net2.workServer.ClientConnectionSolver;
+import net2.OneClient;
 import net.server.Client;
 import net.server.Server;
 import net.tool.connectionSolver.ConnectionMessageImpl;
