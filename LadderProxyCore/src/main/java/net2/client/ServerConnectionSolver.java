@@ -32,11 +32,6 @@ public class ServerConnectionSolver extends IONode {
         super(connectionMessage);
         this.waitQueue = new LinkedBlockingDeque<>();
         this.ioNode = ioNode;
-        byte[] key = RSA.publicKey2Bytes(Data.getKeyPair().getPublic());
-        this.writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
-                .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
-                .addMessage("Content-Length", key.length + "")
-                .setBody(key).getHttpPackageBytes());
     }
 
     @Override
@@ -53,6 +48,11 @@ public class ServerConnectionSolver extends IONode {
             SocketChannel socket = this.getConnectionMessage().getSocket();
             try {
                 if (socket.finishConnect()) {
+                    byte[] key = RSA.publicKey2Bytes(Data.getKeyPair().getPublic());
+                    this.writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
+                            .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
+                            .addMessage("Content-Length", key.length + "")
+                            .setBody(key).getHttpPackageBytes());
                     return afterIO();
                 } else {
                     return ConnectionStatus.WAITING;
@@ -74,6 +74,7 @@ public class ServerConnectionSolver extends IONode {
                 if (this.isFirst) {
                     return whenFirst();
                 } else {
+                    System.out.println("read " + this.packageReader.getBody().length);
                     return whenPackage();
                 }
             } else if (packageStatus.equals(PackageStatus.WAITING)) {
@@ -107,6 +108,7 @@ public class ServerConnectionSolver extends IONode {
         byte[] buffer = buildBuffer();
         try {
             byte[] encrypt = RSA.encrypt(this.publicKey, buffer);
+            System.out.println("write " + encrypt.length + " " + new String(buffer));
             writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
                     .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
                     .addMessage("Content-Length", encrypt.length + "")

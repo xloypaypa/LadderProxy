@@ -80,6 +80,7 @@ public abstract class IONode extends AbstractServer {
         this.getConnectionMessage().closeSocket();
         if (this.ioNode != null) {
             this.ioNode.setClosed(true);
+            this.ioNode.addMessage("close".getBytes());
         }
         return ConnectionStatus.WAITING;
     }
