@@ -170,6 +170,11 @@ public abstract class IONode extends AbstractServer {
     }
 
     protected void buildOutput() {
+        byte[] buffer = buildBuffer();
+        writeBuffer = ByteBuffer.wrap(buffer);
+    }
+
+    protected byte[] buildBuffer() {
         List<byte[]> temp = new LinkedList<>();
         while (!messageQueue.isEmpty()) {
             temp.add(messageQueue.poll());
@@ -185,6 +190,6 @@ public abstract class IONode extends AbstractServer {
                 buffer[pos++] = now;
             }
         }
-        writeBuffer = ByteBuffer.wrap(buffer);
+        return buffer;
     }
 }

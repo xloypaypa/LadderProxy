@@ -11,6 +11,7 @@ import net.tool.packageSolver.packageWriter.packageWriterFactory.HttpRequestPack
 import net2.IONode;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.security.PublicKey;
 import java.util.concurrent.BlockingQueue;
@@ -32,7 +33,7 @@ public class ServerConnectionSolver extends IONode {
         this.waitQueue = new LinkedBlockingDeque<>();
         this.ioNode = ioNode;
         byte[] key = RSA.publicKey2Bytes(Data.getKeyPair().getPublic());
-        this.messageQueue.add(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
+        this.writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
                 .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
                 .addMessage("Content-Length", key.length + "")
                 .setBody(key).getHttpPackageBytes());
@@ -75,7 +76,6 @@ public class ServerConnectionSolver extends IONode {
                 } else {
                     return whenPackage();
                 }
-
             } else if (packageStatus.equals(PackageStatus.WAITING)) {
                 afterIO();
                 return ConnectionStatus.WAITING;
@@ -96,14 +96,23 @@ public class ServerConnectionSolver extends IONode {
             this.waitQueue.add(message);
         } else {
             try {
-                byte[] encrypt = RSA.encrypt(this.publicKey, message);
-                super.addMessage(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
-                        .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
-                        .addMessage("Content-Length", encrypt.length + "")
-                        .setBody(encrypt).getHttpPackageBytes());
+                super.addMessage(message);
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    protected void buildOutput() {
+        byte[] buffer = buildBuffer();
+        try {
+            byte[] encrypt = RSA.encrypt(this.publicKey, buffer);
+            writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
+                    .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
+                    .addMessage("Content-Length", encrypt.length + "")
+                    .setBody(encrypt).getHttpPackageBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -123,6 +132,7 @@ public class ServerConnectionSolver extends IONode {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        afterIO();
         return ConnectionStatus.READING;
     }
 

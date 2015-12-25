@@ -13,6 +13,7 @@ import net2.IONode;
 import net2.OneClient;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.security.PublicKey;
 
 /**
@@ -80,8 +81,17 @@ public class ClientEncryptConnection extends IONode {
     @Override
     public void addMessage(byte[] message) {
         try {
-            byte[] encrypt = RSA.encrypt(this.publicKey, message);
-            super.addMessage(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
+            super.addMessage(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected void buildOutput() {
+        byte[] buffer = buildBuffer();
+        try {
+            byte[] encrypt = RSA.encrypt(this.publicKey, buffer);
+            writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
                     .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
                     .addMessage("Content-Length", encrypt.length + "")
                     .setBody(encrypt).getHttpPackageBytes());
@@ -96,6 +106,7 @@ public class ClientEncryptConnection extends IONode {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        afterIO();
         return ConnectionStatus.READING;
     }
 
@@ -103,7 +114,7 @@ public class ClientEncryptConnection extends IONode {
         isFirst = false;
         this.publicKey = RSA.bytes2PublicKey(this.packageReader.getBody());
         byte[] key = RSA.publicKey2Bytes(Data.getKeyPair().getPublic());
-        this.messageQueue.add(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
+        this.writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
                 .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
                 .addMessage("Content-Length", key.length + "")
                 .setBody(key).getHttpPackageBytes());
