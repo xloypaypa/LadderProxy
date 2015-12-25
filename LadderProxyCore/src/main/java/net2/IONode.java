@@ -9,6 +9,8 @@ import net.tool.connectionSolver.ConnectionStatus;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
@@ -168,6 +170,21 @@ public abstract class IONode extends AbstractServer {
     }
 
     protected void buildOutput() {
-        writeBuffer = ByteBuffer.wrap(messageQueue.poll());
+        List<byte[]> temp = new LinkedList<>();
+        while (!messageQueue.isEmpty()) {
+            temp.add(messageQueue.poll());
+        }
+        int len = 0;
+        for (byte[] now : temp) {
+            len += now.length;
+        }
+        byte[] buffer = new byte[len];
+        int pos = 0;
+        for (byte[] bytes : temp ) {
+            for (byte now : bytes) {
+                buffer[pos++] = now;
+            }
+        }
+        writeBuffer = ByteBuffer.wrap(buffer);
     }
 }
