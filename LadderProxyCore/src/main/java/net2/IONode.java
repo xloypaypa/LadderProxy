@@ -134,7 +134,7 @@ public abstract class IONode extends AbstractServer {
         return ConnectionStatus.WAITING;
     }
 
-    protected byte[] encryptMessage(byte[] message) {
+    protected byte[] decryptMessage(byte[] message) {
         return message;
     }
 
@@ -162,7 +162,7 @@ public abstract class IONode extends AbstractServer {
         for (int i = 0; i < len; i++) {
             message[i] = byteBuffer.get();
         }
-        this.ioNode.addMessage(encryptMessage(message));
+        this.ioNode.addMessage(decryptMessage(message));
         byteBuffer.clear();
         return ConnectionStatus.READING;
     }

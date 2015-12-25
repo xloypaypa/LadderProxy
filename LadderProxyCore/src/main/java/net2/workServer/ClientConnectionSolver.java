@@ -80,7 +80,8 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
             this.ioNode.addMessage(this.packageReader.getPackage());
             this.ioNode.addMessage(this.packageReader.stop());
         }
-        return afterIO();
+        afterIO();
+        return  ConnectionStatus.READING;
     }
 
     private ConnectionStatus whenCheck() throws IOException {
