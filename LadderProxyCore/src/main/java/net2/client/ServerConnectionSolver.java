@@ -74,7 +74,6 @@ public class ServerConnectionSolver extends IONode {
                 if (this.isFirst) {
                     return whenFirst();
                 } else {
-                    System.out.println("read " + this.packageReader.getBody().length);
                     return whenPackage();
                 }
             } else if (packageStatus.equals(PackageStatus.WAITING)) {
@@ -108,7 +107,6 @@ public class ServerConnectionSolver extends IONode {
         byte[] buffer = buildBuffer();
         try {
             byte[] encrypt = RSA.encrypt(this.publicKey, buffer);
-            System.out.println("write " + encrypt.length + " " + new String(buffer));
             writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
                     .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
                     .addMessage("Content-Length", encrypt.length + "")
@@ -130,7 +128,8 @@ public class ServerConnectionSolver extends IONode {
 
     private ConnectionStatus whenPackage() {
         try {
-            this.ioNode.addMessage(RSA.decrypt(Data.getKeyPair().getPrivate(), this.packageReader.getBody()));
+            byte[] message = RSA.decrypt(Data.getKeyPair().getPrivate(), this.packageReader.getBody());
+            this.ioNode.addMessage(message);
         } catch (Exception e) {
             e.printStackTrace();
         }

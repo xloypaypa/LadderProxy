@@ -176,21 +176,22 @@ public abstract class IONode extends AbstractServer {
     }
 
     protected byte[] buildBuffer() {
-        List<byte[]> temp = new LinkedList<>();
-        while (!messageQueue.isEmpty()) {
-            temp.add(messageQueue.poll());
-        }
-        int len = 0;
-        for (byte[] now : temp) {
-            len += now.length;
-        }
-        byte[] buffer = new byte[len];
-        int pos = 0;
-        for (byte[] bytes : temp ) {
-            for (byte now : bytes) {
-                buffer[pos++] = now;
-            }
-        }
-        return buffer;
+//        List<byte[]> temp = new LinkedList<>();
+//        while (!messageQueue.isEmpty()) {
+//            temp.add(messageQueue.poll());
+//        }
+//        int len = 0;
+//        for (byte[] now : temp) {
+//            len += now.length;
+//        }
+//        byte[] buffer = new byte[len];
+//        int pos = 0;
+//        for (byte[] bytes : temp ) {
+//            for (byte now : bytes) {
+//                buffer[pos++] = now;
+//            }
+//        }
+//        return buffer;
+        return messageQueue.poll();
     }
 }
