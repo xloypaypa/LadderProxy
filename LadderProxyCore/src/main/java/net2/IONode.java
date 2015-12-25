@@ -76,6 +76,9 @@ public abstract class IONode extends AbstractServer {
         this.isClosed = true;
         ConnectionManager.getSolverManager().removeConnection(this.getConnectionMessage().getSocket().socket());
         this.getConnectionMessage().closeSocket();
+        if (this.ioNode != null) {
+            this.ioNode.setClosed(true);
+        }
         return ConnectionStatus.WAITING;
     }
 

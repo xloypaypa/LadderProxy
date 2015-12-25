@@ -1,6 +1,7 @@
 package net2.client;
 
 import data.Data;
+import net.tool.packageSolver.packageWriter.packageWriterFactory.HttpRequestPackageWriterFactory;
 import net2.OneClient;
 import net.tool.connectionSolver.ConnectionMessage;
 import net.tool.connectionSolver.ConnectionMessageImpl;
@@ -31,5 +32,9 @@ public class BrowserConnectionSolver extends IONode {
     protected void connectOtherSolver(String host, int port) throws IOException {
         this.ioNode = new ServerConnectionSolver(new ConnectionMessageImpl(), this);
         OneClient.getClient().connect(host, port, this.ioNode);
+        this.ioNode.addMessage(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
+                .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
+                .addMessage("Content-Length", Data.getPassword().getBytes().length + "")
+                .setBody(Data.getPassword().getBytes()).getHttpPackageBytes());
     }
 }

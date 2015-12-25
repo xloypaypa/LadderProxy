@@ -1,9 +1,6 @@
 package net2.workServer;
 
 import data.Data;
-import encrypt.RSA;
-import net2.client.BrowserConnectionSolver;
-import net2.OneClient;
 import net.tool.connectionSolver.ConnectionMessage;
 import net.tool.connectionSolver.ConnectionMessageImpl;
 import net.tool.connectionSolver.ConnectionStatus;
@@ -12,10 +9,10 @@ import net.tool.packageSolver.headSolver.HttpRequestHeadSolver;
 import net.tool.packageSolver.packageReader.HttpPackageReader;
 import net.tool.packageSolver.packageReader.PackageReader;
 import net.tool.packageSolver.packageWriter.packageWriterFactory.HttpReplyPackageWriterFactory;
-import net.tool.packageSolver.packageWriter.packageWriterFactory.HttpRequestPackageWriterFactory;
+import net2.OneClient;
+import net2.client.BrowserConnectionSolver;
 
 import java.io.IOException;
-import java.security.PublicKey;
 
 /**
  * Created by xlo on 2015/12/15.
@@ -24,7 +21,7 @@ import java.security.PublicKey;
 public class ClientConnectionSolver extends BrowserConnectionSolver {
 
     private PackageReader packageReader;
-    private volatile boolean isFirst;
+    private volatile boolean isFirst, isCheck;
 
     public ClientConnectionSolver(ConnectionMessage connectionMessage) {
         super(connectionMessage);
@@ -33,7 +30,7 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
     @Override
     public ConnectionStatus whenInit() {
         super.whenInit();
-        this.isFirst = true;
+        this.isFirst = isCheck = true;
         this.packageReader = new HttpPackageReader(this.getConnectionMessage().getSocket());
         return ConnectionStatus.WAITING;
     }
@@ -45,11 +42,15 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
 
     @Override
     public ConnectionStatus whenReading() {
-        if (this.isFirst) {
+        if (this.isFirst || this.isCheck) {
             try {
                 PackageStatus packageStatus = packageReader.read();
                 if (packageStatus.equals(PackageStatus.END)) {
-                    return whenFirst();
+                    if (isCheck) {
+                        return whenCheck();
+                    } else {
+                        return whenFirst();
+                    }
                 } else if (packageStatus.equals(PackageStatus.WAITING)) {
                     afterIO();
                     return ConnectionStatus.WAITING;
@@ -80,6 +81,16 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
             this.ioNode.addMessage(this.packageReader.stop());
         }
         return afterIO();
+    }
+
+    private ConnectionStatus whenCheck() throws IOException {
+        isCheck = false;
+
+        if (Data.getPassword().equals(new String(this.packageReader.getBody()))) {
+            return ConnectionStatus.READING;
+        } else {
+            return ConnectionStatus.CLOSE;
+        }
     }
 
     @Override
