@@ -29,6 +29,13 @@ public abstract class IONode extends AbstractServer {
     }
 
     @Override
+    public ConnectionStatus whenInit() {
+        this.byteBuffer = ByteBuffer.allocate(1024);
+        byteBuffer.clear();
+        return ConnectionStatus.CONNECTING;
+    }
+
+    @Override
     public ConnectionStatus whenReading() {
         try {
             int len = this.getConnectionMessage().getSocket().read(byteBuffer);

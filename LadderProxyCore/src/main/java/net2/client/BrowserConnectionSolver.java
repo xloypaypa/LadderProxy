@@ -1,0 +1,35 @@
+package net2.client;
+
+import data.Data;
+import net2.OneClient;
+import net.tool.connectionSolver.ConnectionMessage;
+import net.tool.connectionSolver.ConnectionMessageImpl;
+import net.tool.connectionSolver.ConnectionStatus;
+import net2.IONode;
+
+import java.io.IOException;
+
+/**
+ * Created by xlo on 2015/12/25.
+ * it's the browser connection solver
+ */
+public class BrowserConnectionSolver extends IONode {
+    public BrowserConnectionSolver(ConnectionMessage connectionMessage) {
+        super(connectionMessage);
+    }
+
+    @Override
+    public ConnectionStatus whenConnecting() {
+        try {
+            connectOtherSolver(Data.getServerIp(), Data.getServerPort());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ConnectionStatus.WAITING;
+    }
+
+    protected void connectOtherSolver(String host, int port) throws IOException {
+        this.ioNode = new ServerConnectionSolver(new ConnectionMessageImpl(), this);
+        OneClient.getClient().connect(host, port, this.ioNode);
+    }
+}
