@@ -64,7 +64,7 @@ public class ClientEncryptConnection extends IONode {
                     return whenPackage();
                 }
             } else if (packageStatus.equals(PackageStatus.WAITING)) {
-                afterIO();
+                updateBufferAndInterestOps();
                 return ConnectionStatus.WAITING;
             } else if (packageStatus.equals(PackageStatus.ERROR) || packageStatus.equals(PackageStatus.CLOSED)) {
                 return ConnectionStatus.CLOSE;
@@ -92,8 +92,8 @@ public class ClientEncryptConnection extends IONode {
         return super.whenClosing();
     }
 
-    protected void buildOutput() {
-        byte[] buffer = buildBuffer();
+    protected void buildNextBuffer() {
+        byte[] buffer = getNextMessage();
         try {
             byte[] encrypt = RSA.encrypt(this.publicKey, buffer);
             writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
@@ -111,7 +111,7 @@ public class ClientEncryptConnection extends IONode {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        afterIO();
+        updateBufferAndInterestOps();
         return ConnectionStatus.READING;
     }
 
@@ -123,7 +123,7 @@ public class ClientEncryptConnection extends IONode {
                 .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
                 .addMessage("Content-Length", key.length + "")
                 .setBody(key).getHttpPackageBytes());
-        afterIO();
+        updateBufferAndInterestOps();
         return ConnectionStatus.READING;
     }
 }

@@ -30,8 +30,12 @@ public class BrowserConnectionSolver extends IONode {
     }
 
     protected void connectOtherSolver(String host, int port) throws IOException {
-        this.ioNode = new ServerConnectionSolver(new ConnectionMessageImpl(), this);
+        this.ioNode = new ServerEncryptConnectionSolver(new ConnectionMessageImpl(), this);
         OneClient.getClient().connect(host, port, this.ioNode);
+        sendPassword();
+    }
+
+    private void sendPassword() {
         this.ioNode.addMessage(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
                 .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
                 .addMessage("Content-Length", Data.getPassword().getBytes().length + "")

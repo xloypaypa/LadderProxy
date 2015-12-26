@@ -23,10 +23,9 @@ public class HostEncryptConnectionSolver extends IONode {
             SocketChannel socket = this.getConnectionMessage().getSocket();
             try {
                 if (socket.finishConnect()) {
-                    return afterIO();
-                } else {
-                    return ConnectionStatus.WAITING;
+                    updateBufferAndInterestOps();
                 }
+                return ConnectionStatus.WAITING;
             } catch (IOException e) {
                 this.sendException(e);
                 return ConnectionStatus.ERROR;

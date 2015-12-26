@@ -9,8 +9,6 @@ import net.tool.connectionSolver.ConnectionStatus;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
@@ -19,11 +17,12 @@ import java.util.concurrent.LinkedBlockingDeque;
  * it's the io node
  */
 public abstract class IONode extends AbstractServer {
-    protected volatile BlockingQueue<byte[]> messageQueue;
+
+    protected volatile IONode ioNode = null;
     protected volatile ByteBuffer writeBuffer;
-    protected volatile IONode ioNode;
-    protected volatile ByteBuffer byteBuffer;
-    private volatile boolean isClosed = false;
+
+    private volatile BlockingQueue<byte[]> messageQueue;
+    private volatile ByteBuffer byteBuffer;
 
     public IONode(ConnectionMessage connectionMessage) {
         super(connectionMessage);
@@ -44,10 +43,11 @@ public abstract class IONode extends AbstractServer {
             if (len < 0) {
                 return ConnectionStatus.CLOSE;
             } else if (len == 0) {
-                afterIO();
+                updateBufferAndInterestOps();
                 return ConnectionStatus.WAITING;
             } else {
-                return readOnce(len);
+                readOnce(len);
+                return ConnectionStatus.READING;
             }
         } catch (IOException e) {
             this.sendException(e);
@@ -60,12 +60,13 @@ public abstract class IONode extends AbstractServer {
         try {
             int len = this.getConnectionMessage().getSocket().write(writeBuffer);
             if (len == 0) {
-                afterIO();
+                updateBufferAndInterestOps();
                 return ConnectionStatus.WAITING;
             } else if (len < 0) {
                 return ConnectionStatus.CLOSE;
             } else {
-                return afterIO();
+                updateBufferAndInterestOps();
+                return ConnectionStatus.WRITING;
             }
         } catch (Exception e) {
             this.sendException(e);
@@ -73,55 +74,92 @@ public abstract class IONode extends AbstractServer {
         }
     }
 
-    @Override
-    public ConnectionStatus whenClosing() {
-        this.isClosed = true;
-        ConnectionManager.getSolverManager().removeConnection(this.getConnectionMessage().getSocket().socket());
-        this.getConnectionMessage().closeSocket();
-        if (this.ioNode != null) {
-            this.ioNode.setClosed(true);
-            this.ioNode.addMessage("close".getBytes());
+    public void addMessage(byte[] message) {
+        if (message.length == 0) {
+            return;
         }
-        return ConnectionStatus.WAITING;
-    }
-
-    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
-    @Override
-    public ConnectionStatus whenError() {
-        this.getLastException().printStackTrace();
-        return ConnectionStatus.CLOSE;
+        this.messageQueue.add(message);
+        if (this.getConnectionMessage().getSelectionKey() != null && this.getConnectionMessage().getSelectionKey().isValid()
+                && this.getConnectionMessage().getSelectionKey().interestOps() == SelectionKey.OP_READ) {
+            updateBufferAndInterestOps();
+        }
     }
 
     @Override
     public ConnectionStatus whenWaiting() {
         int ops = this.getConnectionMessage().getSelectionKey().interestOps();
         if (ops == SelectionKey.OP_READ) {
-            if (this.isClosed) {
-                return ConnectionStatus.CLOSE;
-            }
             return ConnectionStatus.READING;
         } else if (ops == SelectionKey.OP_WRITE) {
-            if (this.isClosed) {
-                return ConnectionStatus.CLOSE;
-            }
             return ConnectionStatus.WRITING;
         } else {
             return ConnectionStatus.CONNECTING;
         }
     }
 
-    public void addMessage(byte[] message) {
-        if (message.length == 0) {
-            return;
-        }
+    protected void updateBufferAndInterestOps() {
+        updateBuffer();
+        updateInterestOps();
+    }
 
-        this.messageQueue.add(message);
-        if (this.getConnectionMessage().getSelectionKey() != null && this.getConnectionMessage().getSelectionKey().isValid()
-                && this.getConnectionMessage().getSelectionKey().interestOps() == SelectionKey.OP_READ) {
-            afterIO();
+    protected byte[] decryptMessage(byte[] message) {
+        return message;
+    }
+
+    private void updateInterestOps() {
+        if (writeBuffer == null && !this.ioNode.isClosed()) {
+            changeInterestOps(SelectionKey.OP_READ);
+        } else {
+            changeInterestOps(SelectionKey.OP_WRITE);
+        }
+    }
+
+    private void changeInterestOps(int ops) {
+        if (this.getConnectionMessage().getSelectionKey().interestOps() != ops) {
+            this.getConnectionMessage().getSelectionKey().interestOps(ops);
             SelectorManager.getSelectorManager().getSelectThread(this.getConnectionMessage().getSelectionKey().selector()).wakeUp();
         }
     }
+
+    private void updateBuffer() {
+        removeEmptyBuffer();
+        if (needAndHaveNextMessage()) {
+            buildNextBuffer();
+        }
+    }
+
+    private boolean needAndHaveNextMessage() {
+        return writeBuffer == null && !messageQueue.isEmpty();
+    }
+
+    private void removeEmptyBuffer() {
+        if (writeBuffer != null && writeBuffer.position() == writeBuffer.limit()) {
+            writeBuffer = null;
+        }
+    }
+
+    private void readOnce(int len) {
+        byteBuffer.flip();
+        byte[] message = new byte[len];
+        for (int i = 0; i < len; i++) {
+            message[i] = byteBuffer.get();
+        }
+        this.ioNode.addMessage(decryptMessage(message));
+        byteBuffer.clear();
+    }
+
+    protected void buildNextBuffer() {
+        this.writeBuffer = ByteBuffer.wrap(getNextMessage());
+    }
+
+    protected byte[] getNextMessage() {
+        return this.messageQueue.poll();
+    }
+
+    /**
+     * close status
+     */
+    private volatile boolean isClosed = false;
 
     public boolean isClosed() {
         return isClosed;
@@ -131,67 +169,21 @@ public abstract class IONode extends AbstractServer {
         isClosed = closed;
     }
 
-    protected ConnectionStatus afterIO() {
-        updateBuffer();
-        changeInterestOps();
+    @Override
+    public ConnectionStatus whenClosing() {
+        this.isClosed = true;
+        ConnectionManager.getSolverManager().removeConnection(this.getConnectionMessage().getSocket().socket());
+        this.getConnectionMessage().closeSocket();
+        if (this.ioNode != null) {
+            this.ioNode.updateInterestOps();
+        }
         return ConnectionStatus.WAITING;
     }
 
-    protected byte[] decryptMessage(byte[] message) {
-        return message;
-    }
-
-    private void changeInterestOps() {
-        if (writeBuffer == null) {
-            this.getConnectionMessage().getSelectionKey().interestOps(SelectionKey.OP_READ);
-        } else {
-            this.getConnectionMessage().getSelectionKey().interestOps(SelectionKey.OP_WRITE);
-        }
-    }
-
-    private void updateBuffer() {
-        if (writeBuffer != null && writeBuffer.position() == writeBuffer.limit()) {
-            writeBuffer = null;
-        }
-
-        if (writeBuffer == null && !messageQueue.isEmpty()) {
-            buildOutput();
-        }
-    }
-
-    private ConnectionStatus readOnce(int len) {
-        byteBuffer.flip();
-        byte[] message = new byte[len];
-        for (int i = 0; i < len; i++) {
-            message[i] = byteBuffer.get();
-        }
-        this.ioNode.addMessage(decryptMessage(message));
-        byteBuffer.clear();
-        return ConnectionStatus.READING;
-    }
-
-    protected void buildOutput() {
-        byte[] buffer = buildBuffer();
-        writeBuffer = ByteBuffer.wrap(buffer);
-    }
-
-    protected byte[] buildBuffer() {
-//        List<byte[]> temp = new LinkedList<>();
-//        while (!messageQueue.isEmpty()) {
-//            temp.add(messageQueue.poll());
-//        }
-//        int len = 0;
-//        for (byte[] now : temp) {
-//            len += now.length;
-//        }
-//        byte[] buffer = new byte[len];
-//        int pos = 0;
-//        for (byte[] bytes : temp ) {
-//            for (byte now : bytes) {
-//                buffer[pos++] = now;
-//            }
-//        }
-//        return buffer;
-        return messageQueue.poll();
+    @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+    @Override
+    public ConnectionStatus whenError() {
+        this.getLastException().printStackTrace();
+        return ConnectionStatus.CLOSE;
     }
 }

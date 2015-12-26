@@ -5,7 +5,6 @@ import net.tool.connectionSolver.ConnectionMessage;
 import net.tool.connectionSolver.ConnectionStatus;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 /**
@@ -25,7 +24,8 @@ public class HostConnectionSolver extends IONode {
             SocketChannel socket = this.getConnectionMessage().getSocket();
             try {
                 if (socket.finishConnect()) {
-                    return afterIO();
+                    updateBufferAndInterestOps();
+                    return ConnectionStatus.WAITING;
                 } else {
                     return ConnectionStatus.WAITING;
                 }

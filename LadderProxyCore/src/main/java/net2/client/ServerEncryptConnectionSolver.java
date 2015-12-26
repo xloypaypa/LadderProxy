@@ -21,14 +21,14 @@ import java.util.concurrent.LinkedBlockingDeque;
  * Created by xlo on 2015/12/25.
  * it's the server connection solver
  */
-public class ServerConnectionSolver extends IONode {
+public class ServerEncryptConnectionSolver extends IONode {
 
     protected volatile BlockingQueue<byte[]> waitQueue;
     private volatile PackageReader packageReader;
     private volatile boolean isFirst;
     private volatile PublicKey publicKey;
 
-    public ServerConnectionSolver(ConnectionMessage connectionMessage, IONode ioNode) {
+    public ServerEncryptConnectionSolver(ConnectionMessage connectionMessage, IONode ioNode) {
         super(connectionMessage);
         this.waitQueue = new LinkedBlockingDeque<>();
         this.ioNode = ioNode;
@@ -53,7 +53,8 @@ public class ServerConnectionSolver extends IONode {
                             .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
                             .addMessage("Content-Length", key.length + "")
                             .setBody(key).getHttpPackageBytes());
-                    return afterIO();
+                    updateBufferAndInterestOps();
+                    return ConnectionStatus.WAITING;
                 } else {
                     return ConnectionStatus.WAITING;
                 }
@@ -77,7 +78,7 @@ public class ServerConnectionSolver extends IONode {
                     return whenPackage();
                 }
             } else if (packageStatus.equals(PackageStatus.WAITING)) {
-                afterIO();
+                updateBufferAndInterestOps();
                 return ConnectionStatus.WAITING;
             } else if (packageStatus.equals(PackageStatus.ERROR) || packageStatus.equals(PackageStatus.CLOSED)) {
                 return ConnectionStatus.CLOSE;
@@ -103,8 +104,8 @@ public class ServerConnectionSolver extends IONode {
         }
     }
 
-    protected void buildOutput() {
-        byte[] buffer = buildBuffer();
+    protected void buildNextBuffer() {
+        byte[] buffer = getNextMessage();
         try {
             byte[] encrypt = RSA.encrypt(this.publicKey, buffer);
             writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
@@ -122,7 +123,7 @@ public class ServerConnectionSolver extends IONode {
         while (!this.waitQueue.isEmpty()) {
             this.addMessage(this.waitQueue.poll());
         }
-        afterIO();
+        updateBufferAndInterestOps();
         return ConnectionStatus.READING;
     }
 
@@ -133,7 +134,7 @@ public class ServerConnectionSolver extends IONode {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        afterIO();
+        updateBufferAndInterestOps();
         return ConnectionStatus.READING;
     }
 

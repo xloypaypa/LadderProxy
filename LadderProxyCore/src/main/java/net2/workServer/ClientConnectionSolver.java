@@ -52,7 +52,7 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
                         return whenFirst();
                     }
                 } else if (packageStatus.equals(PackageStatus.WAITING)) {
-                    afterIO();
+                    updateBufferAndInterestOps();
                     return ConnectionStatus.WAITING;
                 } else if (packageStatus.equals(PackageStatus.ERROR) || packageStatus.equals(PackageStatus.CLOSED)) {
                     return ConnectionStatus.CLOSE;
@@ -80,7 +80,7 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
             this.ioNode.addMessage(this.packageReader.getPackage());
             this.ioNode.addMessage(this.packageReader.stop());
         }
-        afterIO();
+        updateBufferAndInterestOps();
         return  ConnectionStatus.READING;
     }
 
