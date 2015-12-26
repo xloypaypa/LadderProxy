@@ -42,15 +42,16 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
 
     @Override
     public ConnectionStatus whenReading() {
-        if (this.isFirst || this.isCheck) {
+        if (this.isFirst) {
             try {
                 PackageStatus packageStatus = packageReader.read();
                 if (packageStatus.equals(PackageStatus.END)) {
-                    if (isCheck) {
-                        return whenCheck();
-                    } else {
-                        return whenFirst();
-                    }
+                    return whenFirst();
+//                    if (isCheck) {
+//                        return whenCheck();
+//                    } else {
+//
+//                    }
                 } else if (packageStatus.equals(PackageStatus.WAITING)) {
                     updateBufferAndInterestOps();
                     return ConnectionStatus.WAITING;
@@ -86,7 +87,6 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
 
     private ConnectionStatus whenCheck() throws IOException {
         isCheck = false;
-
         if (Data.getPassword().equals(new String(this.packageReader.getBody()))) {
             return ConnectionStatus.READING;
         } else {
@@ -99,4 +99,5 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
         this.ioNode = new HostConnectionSolver(new ConnectionMessageImpl(), this);
         OneClient.getClient().connect(host, port, this.ioNode);
     }
+
 }

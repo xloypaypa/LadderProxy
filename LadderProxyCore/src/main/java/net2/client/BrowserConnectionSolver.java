@@ -30,7 +30,7 @@ public class BrowserConnectionSolver extends IONode {
     }
 
     protected void connectOtherSolver(String host, int port) throws IOException {
-        this.ioNode = new ServerEncryptConnectionSolver(new ConnectionMessageImpl(), this);
+        this.ioNode = new ServerConnectionSolver(new ConnectionMessageImpl(), this);
         OneClient.getClient().connect(host, port, this.ioNode);
         sendPassword();
     }

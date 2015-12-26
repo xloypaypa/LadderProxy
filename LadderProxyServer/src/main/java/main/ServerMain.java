@@ -17,8 +17,8 @@ public class ServerMain {
     public static void main(String[] args) throws Exception {
         Data.setKeyPair(RSA.buildKeyPair());
 
-        int port = 8001;
-        int num = 5;
+        int port = 8080;
+        int num = 1;
 
         if (args.length > 0) {
             port = Integer.valueOf(args[0]);
@@ -28,7 +28,7 @@ public class ServerMain {
         }
 
         Client client = OneClient.getClient();
-        client.getInstance(5);
+        client.getInstance(num);
 
         Server server = Server.getNewServer("ladder proxy server",
                 () -> new ClientConnectionSolver(new ConnectionMessageImpl()));

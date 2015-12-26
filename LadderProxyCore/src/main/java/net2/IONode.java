@@ -20,9 +20,8 @@ public abstract class IONode extends AbstractServer {
 
     protected volatile IONode ioNode = null;
     protected volatile ByteBuffer writeBuffer;
-
-    private volatile BlockingQueue<byte[]> messageQueue;
-    private volatile ByteBuffer byteBuffer;
+    protected volatile ByteBuffer byteBuffer;
+    protected volatile BlockingQueue<byte[]> messageQueue;
 
     public IONode(ConnectionMessage connectionMessage) {
         super(connectionMessage);
@@ -58,6 +57,7 @@ public abstract class IONode extends AbstractServer {
     @Override
     public ConnectionStatus whenWriting() {
         try {
+            updateBuffer();
             int len = this.getConnectionMessage().getSocket().write(writeBuffer);
             if (len == 0) {
                 updateBufferAndInterestOps();
@@ -66,7 +66,7 @@ public abstract class IONode extends AbstractServer {
                 return ConnectionStatus.CLOSE;
             } else {
                 updateBufferAndInterestOps();
-                return ConnectionStatus.WRITING;
+                return ConnectionStatus.WAITING;
             }
         } catch (Exception e) {
             this.sendException(e);
@@ -81,7 +81,7 @@ public abstract class IONode extends AbstractServer {
         this.messageQueue.add(message);
         if (this.getConnectionMessage().getSelectionKey() != null && this.getConnectionMessage().getSelectionKey().isValid()
                 && this.getConnectionMessage().getSelectionKey().interestOps() == SelectionKey.OP_READ) {
-            updateBufferAndInterestOps();
+            changeInterestOps(SelectionKey.OP_WRITE);
         }
     }
 
@@ -115,13 +115,16 @@ public abstract class IONode extends AbstractServer {
     }
 
     private void changeInterestOps(int ops) {
+        if (!this.getConnectionMessage().getSelectionKey().isValid()) {
+            return ;
+        }
         if (this.getConnectionMessage().getSelectionKey().interestOps() != ops) {
             this.getConnectionMessage().getSelectionKey().interestOps(ops);
             SelectorManager.getSelectorManager().getSelectThread(this.getConnectionMessage().getSelectionKey().selector()).wakeUp();
         }
     }
 
-    private void updateBuffer() {
+    protected void updateBuffer() {
         removeEmptyBuffer();
         if (needAndHaveNextMessage()) {
             buildNextBuffer();
@@ -138,7 +141,7 @@ public abstract class IONode extends AbstractServer {
         }
     }
 
-    private void readOnce(int len) {
+    protected void readOnce(int len) {
         byteBuffer.flip();
         byte[] message = new byte[len];
         for (int i = 0; i < len; i++) {
@@ -171,11 +174,15 @@ public abstract class IONode extends AbstractServer {
 
     @Override
     public ConnectionStatus whenClosing() {
-        this.isClosed = true;
-        ConnectionManager.getSolverManager().removeConnection(this.getConnectionMessage().getSocket().socket());
-        this.getConnectionMessage().closeSocket();
-        if (this.ioNode != null) {
-            this.ioNode.updateInterestOps();
+        try {
+            this.isClosed = true;
+            ConnectionManager.getSolverManager().removeConnection(this.getConnectionMessage().getSocket().socket());
+            this.getConnectionMessage().closeSocket();
+            if (this.ioNode != null) {
+                this.ioNode.updateInterestOps();
+            }
+        } catch (Exception e) {
+//            e.printStackTrace();
         }
         return ConnectionStatus.WAITING;
     }
@@ -183,7 +190,6 @@ public abstract class IONode extends AbstractServer {
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     @Override
     public ConnectionStatus whenError() {
-        this.getLastException().printStackTrace();
         return ConnectionStatus.CLOSE;
     }
 }
