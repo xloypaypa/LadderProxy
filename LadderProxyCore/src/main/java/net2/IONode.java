@@ -124,7 +124,7 @@ public abstract class IONode extends AbstractServer {
     private void updateInterestOps() {
         try {
             this.lock.lock();
-            if (writeBuffer == null && !this.ioNode.isClosed()) {
+            if (writeBuffer == null && (this.ioNode == null || !this.ioNode.isClosed())) {
                 changeInterestOps(SelectionKey.OP_READ);
             } else {
                 changeInterestOps(SelectionKey.OP_WRITE);

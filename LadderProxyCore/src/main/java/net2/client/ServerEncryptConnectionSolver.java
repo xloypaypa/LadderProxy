@@ -91,30 +91,13 @@ public class ServerEncryptConnectionSolver extends IONode {
         }
     }
 
-    @Override
-    public void addMessage(byte[] message) {
-        if (this.publicKey == null) {
-            this.waitQueue.add(message);
-        } else {
-            try {
-                super.addMessage(message);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    protected void buildNextBuffer() {
-        byte[] buffer = getNextMessage();
+    private ConnectionStatus whenPackage() {
         try {
-            byte[] encrypt = RSA.encrypt(this.publicKey, buffer);
-            writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
-                    .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
-                    .addMessage("Content-Length", encrypt.length + "")
-                    .setBody(encrypt).getHttpPackageBytes());
+            this.ioNode.addMessage(RSA.decrypt(Data.getKeyPair().getPrivate(), this.packageReader.getBody()));
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return ConnectionStatus.READING;
     }
 
     private ConnectionStatus whenFirst() {
@@ -127,15 +110,26 @@ public class ServerEncryptConnectionSolver extends IONode {
         return ConnectionStatus.READING;
     }
 
-    private ConnectionStatus whenPackage() {
+    @Override
+    public void addMessage(byte[] message) {
         try {
-            byte[] message = RSA.decrypt(Data.getKeyPair().getPrivate(), this.packageReader.getBody());
-            this.ioNode.addMessage(message);
-        } catch (Exception e) {
-            e.printStackTrace();
+            this.lock.lock();
+            if (this.publicKey == null) {
+                this.waitQueue.add(message);
+            } else {
+                try {
+                    byte[] encrypt = RSA.encrypt(this.publicKey, message);
+                    super.addMessage(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
+                            .setCommand("GET").setHost("127.0.0.1").setUrl("/check").setVersion("HTTP/1.1")
+                            .addMessage("Content-Length", encrypt.length + "")
+                            .setBody(encrypt).getHttpPackageBytes());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        } finally {
+            this.lock.unlock();
         }
-        updateBufferAndInterestOps();
-        return ConnectionStatus.READING;
     }
 
 }

@@ -77,41 +77,13 @@ public class ClientEncryptConnection extends IONode {
         }
     }
 
-    @Override
-    public void addMessage(byte[] message) {
-        try {
-            super.addMessage(message);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public ConnectionStatus whenClosing() {
-        System.out.println("close");
-        return super.whenClosing();
-    }
-
-    protected void buildNextBuffer() {
-        byte[] buffer = getNextMessage();
-        try {
-            byte[] encrypt = RSA.encrypt(this.publicKey, buffer);
-            writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
-                    .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
-                    .addMessage("Content-Length", encrypt.length + "")
-                    .setBody(encrypt).getHttpPackageBytes());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     private ConnectionStatus whenPackage() {
         try {
-            this.ioNode.addMessage(RSA.decrypt(Data.getKeyPair().getPrivate(), this.packageReader.getBody()));
+            byte[] decrypt = RSA.decrypt(Data.getKeyPair().getPrivate(), this.packageReader.getBody());
+            this.ioNode.addMessage(decrypt);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        updateBufferAndInterestOps();
         return ConnectionStatus.READING;
     }
 
@@ -120,10 +92,26 @@ public class ClientEncryptConnection extends IONode {
         this.publicKey = RSA.bytes2PublicKey(this.packageReader.getBody());
         byte[] key = RSA.publicKey2Bytes(Data.getKeyPair().getPublic());
         this.writeBuffer = ByteBuffer.wrap(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
-                .setCommand("GET").setHost("server").setUrl("/check").setVersion("HTTP/1.1")
+                .setCommand("GET").setHost("127.0.0.1").setUrl("/check").setVersion("HTTP/1.1")
                 .addMessage("Content-Length", key.length + "")
                 .setBody(key).getHttpPackageBytes());
         updateBufferAndInterestOps();
         return ConnectionStatus.READING;
+    }
+
+    @Override
+    public void addMessage(byte[] message) {
+        try {
+            this.lock.lock();
+            byte[] encrypt = RSA.encrypt(this.publicKey, message);
+            super.addMessage(HttpRequestPackageWriterFactory.getHttpReplyPackageWriterFactory()
+                    .setCommand("GET").setHost("127.0.0.1").setUrl("/check").setVersion("HTTP/1.1")
+                    .addMessage("Content-Length", encrypt.length + "")
+                    .setBody(encrypt).getHttpPackageBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            this.lock.unlock();
+        }
     }
 }
