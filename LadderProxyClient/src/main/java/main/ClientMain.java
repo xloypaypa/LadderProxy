@@ -37,7 +37,7 @@ public class ClientMain {
         Data.setServerPort(Integer.valueOf(serverPort));
 
         Client client = OneClient.getClient();
-        client.getInstance(5);
+        client.getInstance(1);
 
         try {
             Data.save();

@@ -19,7 +19,7 @@ public class EncryptServerMain {
         Data.setKeyPair(RSA.buildKeyPair());
 
         int port = 8000;
-        int num = 5;
+        int num = 1;
 
         Data.setServerIp("127.0.0.1");
         Data.setServerPort(8001);
@@ -37,7 +37,7 @@ public class EncryptServerMain {
         }
 
         Client client = OneClient.getClient();
-        client.getInstance(5);
+        client.getInstance(num);
 
         Server server = Server.getNewServer("ladder proxy encrypt server",
                 () -> new ClientEncryptConnection(new ConnectionMessageImpl()));
