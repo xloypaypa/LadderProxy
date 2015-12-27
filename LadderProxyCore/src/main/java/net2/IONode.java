@@ -11,6 +11,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by xlo on 2015/12/15.
@@ -22,6 +24,7 @@ public abstract class IONode extends AbstractServer {
     protected volatile ByteBuffer writeBuffer;
     protected volatile ByteBuffer byteBuffer;
     protected volatile BlockingQueue<byte[]> messageQueue;
+    protected volatile Lock lock = new ReentrantLock();
 
     public IONode(ConnectionMessage connectionMessage) {
         super(connectionMessage);
@@ -38,6 +41,7 @@ public abstract class IONode extends AbstractServer {
     @Override
     public ConnectionStatus whenReading() {
         try {
+            this.lock.lock();
             int len = this.getConnectionMessage().getSocket().read(byteBuffer);
             if (len < 0) {
                 return ConnectionStatus.CLOSE;
@@ -51,12 +55,15 @@ public abstract class IONode extends AbstractServer {
         } catch (IOException e) {
             this.sendException(e);
             return ConnectionStatus.ERROR;
+        } finally {
+            this.lock.unlock();
         }
     }
 
     @Override
     public ConnectionStatus whenWriting() {
         try {
+            this.lock.lock();
             updateBuffer();
             int len = this.getConnectionMessage().getSocket().write(writeBuffer);
             if (len == 0) {
@@ -71,6 +78,8 @@ public abstract class IONode extends AbstractServer {
         } catch (Exception e) {
             this.sendException(e);
             return ConnectionStatus.ERROR;
+        } finally {
+            this.lock.unlock();
         }
     }
 
@@ -78,11 +87,17 @@ public abstract class IONode extends AbstractServer {
         if (message.length == 0) {
             return;
         }
-        this.messageQueue.add(message);
-        if (this.getConnectionMessage().getSelectionKey() != null && this.getConnectionMessage().getSelectionKey().isValid()
-                && this.getConnectionMessage().getSelectionKey().interestOps() == SelectionKey.OP_READ) {
-            changeInterestOps(SelectionKey.OP_WRITE);
+        try {
+            this.lock.lock();
+            this.messageQueue.add(message);
+            if (this.getConnectionMessage().getSelectionKey() != null && this.getConnectionMessage().getSelectionKey().isValid()
+                    && this.getConnectionMessage().getSelectionKey().interestOps() == SelectionKey.OP_READ) {
+                changeInterestOps(SelectionKey.OP_WRITE);
+            }
+        } finally {
+            this.lock.unlock();
         }
+
     }
 
     @Override
@@ -107,10 +122,15 @@ public abstract class IONode extends AbstractServer {
     }
 
     private void updateInterestOps() {
-        if (writeBuffer == null && !this.ioNode.isClosed()) {
-            changeInterestOps(SelectionKey.OP_READ);
-        } else {
-            changeInterestOps(SelectionKey.OP_WRITE);
+        try {
+            this.lock.lock();
+            if (writeBuffer == null && !this.ioNode.isClosed()) {
+                changeInterestOps(SelectionKey.OP_READ);
+            } else {
+                changeInterestOps(SelectionKey.OP_WRITE);
+            }
+        } finally {
+            this.lock.unlock();
         }
     }
 

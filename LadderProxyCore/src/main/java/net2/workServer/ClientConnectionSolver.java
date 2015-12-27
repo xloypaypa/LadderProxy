@@ -46,12 +46,11 @@ public class ClientConnectionSolver extends BrowserConnectionSolver {
             try {
                 PackageStatus packageStatus = packageReader.read();
                 if (packageStatus.equals(PackageStatus.END)) {
-                    return whenFirst();
-//                    if (isCheck) {
-//                        return whenCheck();
-//                    } else {
-//
-//                    }
+                    if (isCheck) {
+                        return whenCheck();
+                    } else {
+                        return whenFirst();
+                    }
                 } else if (packageStatus.equals(PackageStatus.WAITING)) {
                     updateBufferAndInterestOps();
                     return ConnectionStatus.WAITING;

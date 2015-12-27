@@ -17,8 +17,8 @@ public class ServerMain {
     public static void main(String[] args) throws Exception {
         Data.setKeyPair(RSA.buildKeyPair());
 
-        int port = 8080;
-        int num = 1;
+        int port = 8000;
+        int num = 5;
 
         if (args.length > 0) {
             port = Integer.valueOf(args[0]);
